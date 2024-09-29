@@ -4,7 +4,8 @@ local augroup = vim.api.nvim_create_augroup
 local keymap = vim.api.nvim_set_keymap
 local autocmd = vim.api.nvim_create_autocmd
 local bufmap = vim.api.nvim_buf_set_keymap
-
+vim.opt.shortmess:append('s')
+-- exam
 local opts = { silent = true }
 local function opts_desc(desc, callback)
     return {
@@ -60,7 +61,7 @@ vim.filetype.add {
 }
 
 local function notify(cmd)
-    return string.format("<cmd>call VSCodeNotify('%s')<CR>", cmd)
+    return string.format("<Cmd>lua require('vscode').call('%s')<CR>", cmd)
 end
 
 local function v_notify(cmd)
@@ -86,7 +87,7 @@ keymap('n', '<Leader>ff', notify 'workbench.action.quickOpen', opts) -- find fil
 -- toggle UI components keymaps
 keymap('n', '<Leader>tp', notify 'workbench.action.togglePanel', opts)
 -- keymap('n', '<Leader>ta', notify 'workbench.action.toggleAuxiliaryBar', opts)
-keymap('n', '<C-b>', notify 'workbench.action.toggleSidebarVisibility', opts)
+keymap('n', '<Leader>ts', notify 'workbench.action.toggleSidebarVisibility', opts)
 keymap('n', '<Leader>tt', notify 'workbench.action.terminal.toggleTerminal', opts)
 
 -- switch focus keymaps
@@ -95,6 +96,9 @@ keymap('n', '<Leader>sp', notify 'workbench.action.focusPanel', opts) -- switch 
 
 --misc keymaps
 keymap('n', '<Leader>mp', notify 'markdown.showPreviewToSide', opts) -- markdown preview
+keymap('n', 'u', notify 'undo', opts) -- markdown preview
+keymap('n', '<C-y>', notify 'redo', opts) -- markdown preview
+vim.o.undofile = false --disble undo stack
 
 -- in vim, a tab contains multiple windows
 -- in vscode a window contains multiple tabs
@@ -109,8 +113,10 @@ keymap('n', '<C-k>', notify 'workbench.action.navigateUp', opts)
 keymap('x', '<C-k>', notify 'workbench.action.navigateUp', opts)
 keymap('n', '<C-h>', notify 'workbench.action.navigateLeft', opts)
 keymap('x', '<C-h>', notify 'workbench.action.navigateLeft', opts)
+keymap('x', '<C-h>', "<C-w>h", opts)
 keymap('n', '<C-l>', notify 'workbench.action.navigateRight', opts)
 keymap('x', '<C-l>', notify 'workbench.action.navigateRight', opts)
+keymap('x', '<C-l>', "<C-w>l", opts)
 
 keymap('n', '<C-w>_', notify 'workbench.action.toggleEditorWidths', opts)
 
@@ -178,6 +184,7 @@ keymap('v', '<Leader>ca', v_notify 'editor.action.quickFix', opts)
 keymap('v', '<Leader>cr', v_notify 'editor.action.refactor', opts)
 keymap('v', '<Leader>wc', v_notify 'workbench.action.showCommands', opts)
 keymap('n', '<S-k>', v_notify 'editor.action.showDefinitionPreviewHover', opts_desc 'LSP Definition')
+
 
 autocmd('FileType', {
     group = M.my_vscode,

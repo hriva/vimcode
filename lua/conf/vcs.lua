@@ -23,12 +23,12 @@ M.mini_git_setup = function()
             vim.cmd 'horizontal Git commit --amend'
         end,
     })
-    keymap('n', '<Leader>gd', '<Cmd>Git diff<CR>', { desc = 'Diff' })
-    keymap('n', '<Leader>gD', '<Cmd>Git diff --cached<CR>', { desc = 'Cached Diff' })
-    keymap('n', '<Leader>gl', '<Cmd>Git log --oneline<CR>', { desc = 'Log' })
-    keymap('n', '<Leader>gL', '<Cmd>Git log --oneline --follow -- %<CR>', { desc = 'Log buffer' })
-    keymap('n', '<Leader>gg', '<Cmd>lua MiniGit.show_at_cursor()<CR>', { desc = 'Minigit DWIM' })
-    keymap('v', '<Leader>gg', '<Cmd>lua MiniGit.show_at_cursor()<CR>', { desc = 'MiniGit DWIM' })
+    keymap('n', '<Leader>do', '<Cmd>Git diff<CR>', { desc = 'Diff Open' })
+    keymap('n', '<Leader>dO', '<Cmd>Git diff --cached<CR>', { desc = 'Diff open cached' })
+    keymap('n', '<Leader>dl', '<Cmd>Git log --oneline<CR>', { desc = 'Log' })
+    keymap('n', '<Leader>dL', '<Cmd>Git log --oneline --follow -- %<CR>', { desc = 'Log buffer' })
+    keymap('n', '<Leader>dg', '<Cmd>lua MiniGit.show_at_cursor()<CR>', { desc = 'Minigit DWIM' })
+    keymap('v', '<Leader>dg', '<Cmd>lua MiniGit.show_at_cursor()<CR>', { desc = 'MiniGit DWIM' })
 
     -- bind show_at_cursor command to CR for git filetype
     autocmd('FileType', {

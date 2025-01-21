@@ -14,27 +14,49 @@ local function opts_desc(desc, callback)
         callback = callback,
     }
 end
+if pcall(require, 'vscode.notify') then
+    vim.notify = require('vscode').notify
+end
+
+-- NOTE: this is very IMPORTANT! Setting cmdheight = 0 (what I use in normal
+-- nvim sessions) causes command outputs to popup the VSCode bottom panel,
+-- creating annoying experience. Set cmdheight = 1 to prevent this behavior and
+-- maintain a smoother workflow.
+vim.o.cmdheight = 1
 
 --copied from https://github.com/vscode-neovim/vscode-neovim/blob/master/vim/vscode-window-commands.vim
 local function split(direction)
     return function()
+        local vscode = require 'vscode'
         if direction == 'v' then
-            vim.cmd.call [[VSCodeCall('workbench.action.splitEditorDown')]]
+            vscode.call 'workbench.action.splitEditorDown'
         else
-            vim.cmd.call [[VSCodeCall('workbench.action.splitEditorRight')]]
+            vscode.call 'workbench.action.splitEditorRight'
         end
     end
 end
 
 local function manage_height_or_width(position, direction)
+    local ok, vscode = pcall(require, 'vscode')
+    if not ok then
+        return function() end
+    end
     local action = {
         w = {
-            ['+'] = [[VSCodeNotify('workbench.action.increaseViewWidth')]],
-            ['-'] = [[VSCodeNotify('workbench.action.decreaseViewWidth')]],
+            ['+'] = function()
+                vscode.call 'workbench.action.increaseViewWidth'
+            end,
+            ['-'] = function()
+                vscode.call 'workbench.action.decreaseViewWidth'
+            end,
         },
         h = {
-            ['+'] = [[VSCodeNotify('workbench.action.increaseViewHeight')]],
-            ['-'] = [[VSCodeNotify('workbench.action.decreaseViewHeight')]],
+            ['+'] = function()
+                vscode.call 'workbench.action.increaseViewHeight'
+            end,
+            ['-'] = function()
+                vscode.call 'workbench.action.decreaseViewHeight'
+            end,
         },
     }
     return function()
@@ -45,7 +67,7 @@ local function manage_height_or_width(position, direction)
             count = 1
         end
         for _ = 1, count do
-            vim.cmd.call(action[position][direction])
+            action[position][direction]()
         end
     end
 end
@@ -61,23 +83,26 @@ vim.filetype.add {
 }
 
 local function notify(cmd)
-    return string.format("<Cmd>lua require('vscode').call('%s')<CR>", cmd)
+    return string.format("<cmd>lua require'vscode'.action('%s')<CR>", cmd)
 end
 
 local function v_notify(cmd)
-    return string.format("<cmd>call VSCodeNotify('%s')<CR>", cmd)
+    return string.format("<cmd>lua require'vscode'.action('%s')<CR>", cmd)
 end
 
 -- LSP related keymaps
 keymap('n', '<Leader>fz', notify 'references-view.findReferences', opts) -- language references
 keymap('n', '<Leader>ds', notify 'workbench.actions.view.problems', opts) -- language diagnostics
-keymap('n', 'g?', notify 'editor.action.goToReferences', opts)
+keymap('n', 'gr', notify 'editor.action.goToReferences', opts)
+keymap('n', 'gd', notify 'editor.action.revealDefinitionAside', opts)
+keymap('n', 'gD', notify 'editor.action.goToDeclaration', opts)
+keymap('n', '<Leader>sh', notify 'editor.action.triggerParameterHints', opts)
 keymap('n', '<Leader>ln', notify 'editor.action.rename', opts)
 keymap('n', '<Leader>fm', notify 'editor.action.formatDocument', opts)
 keymap('n', '<Leader>ca', notify 'editor.action.quickFix', opts) -- language code actions
 keymap('n', '<Leader>cr', notify 'editor.action.refactor', opts) -- language refactor
--- keymap('n', '<C-w>]', notify 'editor.action.revealDefinitionAside', opts) -- language code actions
-keymap('n', '<Leader>w]', notify 'editor.action.revealDefinitionAside', opts) -- language code actions
+keymap('n', '<C-w>]', notify 'editor.action.revealDefinitionAside', opts) -- language code actions
+keymap('n', '<Leader>sd]', notify 'editor.action.revealDefinitionAside', opts) -- language code actions
 
 -- search/find related keymaps
 keymap('n', '<Leader>fw', notify 'workbench.action.findInFiles', opts) -- use ripgrep to search files
@@ -85,20 +110,34 @@ keymap('n', '<Leader>wc', notify 'workbench.action.showCommands', opts) -- find 
 keymap('n', '<Leader>ff', notify 'workbench.action.quickOpen', opts) -- find files
 
 -- toggle UI components keymaps
+keymap('n', '<C-b>', notify 'workbench.action.toggleSidebarVisibility', opts)
 keymap('n', '<Leader>tp', notify 'workbench.action.togglePanel', opts)
--- keymap('n', '<Leader>ta', notify 'workbench.action.toggleAuxiliaryBar', opts)
+keymap('n', '<Leader>ta', notify 'workbench.action.output.toggleOutput', opts)
 keymap('n', '<Leader>ts', notify 'workbench.action.toggleSidebarVisibility', opts)
 keymap('n', '<Leader>tt', notify 'workbench.action.terminal.toggleTerminal', opts)
 
 -- switch focus keymaps
-keymap('n', '<Leader>sb', notify 'workbench.action.focusSideBar', opts) -- switch to sidebar
-keymap('n', '<Leader>sp', notify 'workbench.action.focusPanel', opts) -- switch to panel
+-- keymap('n', '<Leader>sb', notify 'workbench.action.focusSideBar', opts) -- switch to sidebar
+-- keymap('n', '<Leader>sp', notify 'workbench.action.focusPanel', opts) -- switch to panel
 
 --misc keymaps
 keymap('n', '<Leader>mp', notify 'markdown.showPreviewToSide', opts) -- markdown preview
 keymap('n', 'u', notify 'undo', opts) -- markdown preview
 keymap('n', '<C-y>', notify 'redo', opts) -- markdown preview
 vim.o.undofile = false --disble undo stack
+
+-- window keymaps
+--copied from https://github.com/vscode-neovim/vscode-neovim/blob/master/vim/vscode-window-commands.vim
+keymap('n', '<Leader>ww', notify 'workbench.action.focusNextGroup', opts)
+keymap('n', '<Leader>wp', notify 'workbench.action.focusPreviousGroup', opts)
+keymap('n', '<Leader>wq', notify 'workbench.action.closeActiveEditor', opts)
+keymap('n', '<Leader>wo', notify 'workbench.action.joinAllGroups', opts)
+keymap('n', '<Leader>w=', notify 'workbench.action.evenEditorWidths', opts)
+keymap('n', '<Leader>wh', notify 'workbench.action.focusLeftGroup', opts)
+keymap('n', '<Leader>wj', notify 'workbench.action.focusBelowGroup', opts)
+keymap('n', '<Leader>wk', notify 'workbench.action.focusAboveGroup', opts)
+keymap('n', '<Leader>wl', notify 'workbench.action.focusRightGroup', opts)
+
 
 -- in vim, a tab contains multiple windows
 -- in vscode a window contains multiple tabs
@@ -113,10 +152,8 @@ keymap('n', '<C-k>', notify 'workbench.action.navigateUp', opts)
 keymap('x', '<C-k>', notify 'workbench.action.navigateUp', opts)
 keymap('n', '<C-h>', notify 'workbench.action.navigateLeft', opts)
 keymap('x', '<C-h>', notify 'workbench.action.navigateLeft', opts)
-keymap('x', '<C-h>', "<C-w>h", opts)
 keymap('n', '<C-l>', notify 'workbench.action.navigateRight', opts)
 keymap('x', '<C-l>', notify 'workbench.action.navigateRight', opts)
-keymap('x', '<C-l>', "<C-w>l", opts)
 
 keymap('n', '<C-w>_', notify 'workbench.action.toggleEditorWidths', opts)
 
@@ -151,19 +188,6 @@ keymap('n', '<Leader>b7', notify 'workbench.action.openEditorAtIndex7', opts_des
 keymap('n', '<Leader>b8', notify 'workbench.action.openEditorAtIndex8', opts_desc 'tab: 8st tab')
 keymap('n', '<Leader>b9', notify 'workbench.action.openEditorAtIndex9', opts_desc 'tab: 9st tab')
 
--- window keymaps
---copied from https://github.com/vscode-neovim/vscode-neovim/blob/master/vim/vscode-window-commands.vim
-keymap('n', '<Leader>ww', notify 'workbench.action.focusNextGroup', opts)
-keymap('n', '<Leader>wp', notify 'workbench.action.focusPreviousGroup', opts)
-keymap('n', '<Leader>wq', notify 'workbench.action.closeActiveEditor', opts)
-keymap('n', '<Leader>wc', notify 'workbench.action.closeActiveEditor', opts)
-keymap('n', '<Leader>wo', notify 'workbench.action.joinAllGroups', opts)
-keymap('n', '<Leader>w=', notify 'workbench.action.evenEditorWidths', opts)
-keymap('n', '<Leader>wh', notify 'workbench.action.focusLeftGroup', opts)
-keymap('n', '<Leader>wj', notify 'workbench.action.focusBelowGroup', opts)
-keymap('n', '<Leader>wk', notify 'workbench.action.focusAboveGroup', opts)
-keymap('n', '<Leader>wl', notify 'workbench.action.focusRightGroup', opts)
-
 -- navigation keymaps
 keymap('n', ']r', notify 'references-view.next', opts)
 keymap('n', '[r', notify 'references-view.prev', opts)
@@ -183,7 +207,7 @@ keymap('v', '<Leader>fm', v_notify 'editor.action.formatSelection', opts)
 keymap('v', '<Leader>ca', v_notify 'editor.action.quickFix', opts)
 keymap('v', '<Leader>cr', v_notify 'editor.action.refactor', opts)
 keymap('v', '<Leader>wc', v_notify 'workbench.action.showCommands', opts)
-keymap('n', '<S-k>', v_notify 'editor.action.showDefinitionPreviewHover', opts_desc 'LSP Definition')
+keymap('n', 'K', v_notify 'editor.action.showDefinitionPreviewHover', opts_desc 'LSP Definition')
 
 
 autocmd('FileType', {
